@@ -23,7 +23,9 @@ export async function createArticlePage(
 ): Promise<{ id: string; url: string }> {
   const properties: Record<string, unknown> = {
     Title: { title: [{ text: { content: data.title } }] },
-    Summary: { rich_text: [{ text: { content: data.summary } }] },
+    Summary: {
+      rich_text: [{ text: { content: data.summary.slice(0, 2000) } }],
+    },
     Category: { select: { name: data.category } },
     Date: { date: { start: data.date } },
   }
@@ -76,13 +78,18 @@ export async function createBookPage(
     properties.Date = { date: { start: data.publishedDate } }
   }
 
+  const pageBody: Record<string, unknown> = {
+    parent: { database_id: env.NOTION_BOOKS_DB_ID },
+    properties,
+  }
+  if (data.coverUrl) {
+    pageBody.cover = { type: 'external', external: { url: data.coverUrl } }
+  }
+
   const res = await fetch(`${NOTION_BASE}/pages`, {
     method: 'POST',
     headers: notionHeaders(env.NOTION_API_KEY),
-    body: JSON.stringify({
-      parent: { database_id: env.NOTION_BOOKS_DB_ID },
-      properties,
-    }),
+    body: JSON.stringify(pageBody),
   })
 
   if (!res.ok) {
