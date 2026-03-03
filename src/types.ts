@@ -6,4 +6,5 @@ export interface Env {
   NOTION_API_KEY: string
   NOTION_ARTICLES_DB_ID: string
   NOTION_BOOKS_DB_ID: string
+  ALLOWED_CHAT_IDS: string
 }

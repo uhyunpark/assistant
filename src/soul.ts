@@ -13,6 +13,7 @@ const DEFAULT_SOUL = `# SOUL.md
 - 확실하지 않으면 분류 전에 물어보기`
 
 const SOUL_KEY = 'soul:md'
+const SOUL_PREV_KEY = 'soul:md:prev'
 
 export async function getSoul(kv: KVNamespace): Promise<string> {
   const stored = await kv.get(SOUL_KEY)
@@ -23,5 +24,10 @@ export async function updateSoul(
   kv: KVNamespace,
   content: string
 ): Promise<void> {
+  // Save current version for rollback before overwriting
+  const current = await kv.get(SOUL_KEY)
+  if (current) {
+    await kv.put(SOUL_PREV_KEY, current)
+  }
   await kv.put(SOUL_KEY, content)
 }

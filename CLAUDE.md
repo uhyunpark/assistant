@@ -18,27 +18,49 @@ No test framework is set up yet. Use `bun run typecheck` as the primary verifica
 
 ## Architecture
 
-**Request flow:** Telegram webhook → Hono router (`src/index.ts`) → `runAgent()` → Gemini Chat API with function calling → tool executor → Telegram reply.
+**Request flow:** Telegram webhook → Hono router (`src/index.ts`) → allowlist check → `runAgent()` → Gemini Chat API with function calling → skill registry → Telegram reply (Markdown with fallback).
 
-**Agentic loop** (`src/agent.ts`): Creates a Gemini chat session with conversation history from KV, sends the user message, then loops while the model returns `functionCalls`. Each tool call is executed via `executeTool()` and results are sent back until the model produces a text response.
+**Agentic loop** (`src/agent.ts`): Creates a Gemini chat session with conversation history from KV, sends the user message, then loops while the model returns `functionCalls` (max 10 turns). Tool calls execute in parallel via `Promise.allSettled()`. Typing indicator refreshes each iteration.
 
-**Tool system** (`src/tools.ts`): `toolDeclarations` array defines Gemini FunctionDeclarations. `executeTool()` is a switch-based dispatcher. To add a new tool: add declaration to the array, add case to the switch.
+**Skill system** (`src/skills/`): Replaces the old monolithic `tools.ts`. Each skill groups related tools with metadata:
+
+- `types.ts` — `Tool` and `Skill` interfaces
+- `registry.ts` — `SkillRegistry` class (register, resolve, dispatch)
+- `fetch-url.ts` — standalone URL fetcher with SSRF protection
+- `article-research.ts` — fetch + classify + save articles to Notion
+- `book-management.ts` — search + save books to Notion
+- `soul-management.ts` — update system prompt with version history
+
+**Adding a new skill:**
+```typescript
+// src/skills/my-skill.ts
+export const mySkill: Skill = {
+  name: 'my-skill',
+  description: '...',
+  triggers: ['keyword1', 'keyword2'],
+  tools: [{ declaration: {...}, execute(args, env) {...} }],
+}
+// Register in src/agent.ts: registry.register(mySkill)
+```
 
 **State in KV:**
 - `soul:md` — system prompt, editable by the agent via `update_soul` tool
-- `history:{chatId}` — conversation history per chat, capped at 20 turns
+- `soul:md:prev` — previous version of soul for rollback
+- `history:{chatId}` — conversation history per chat, capped at 20 turns, trimmed to start on user turn
 
 ## Key Conventions
 
 - All external API calls use raw `fetch` (no SDKs for Notion, Telegram, Google Books)
 - Gemini SDK: `@google/genai` — `chat.getHistory()` is synchronous (not async)
-- Telegram messages >4096 chars are auto-split in `sendTelegramMessage()`
+- Telegram messages >4096 chars are auto-split; sent with Markdown parse mode (plain text fallback on error)
 - Tool parameters use Gemini's type enums (`'OBJECT' as Type`, `'STRING' as Type`)
-- `soul.md` file in repo root is the reference template; runtime version lives in KV
+- Dates use KST (UTC+9) for Korean user
+- Tool errors are caught by the registry and returned to the model with a hint to try a different approach
+- `DEFAULT_SOUL` constant in `soul.ts` is the reference template; runtime version lives in KV
 
 ## Secrets (via `bunx wrangler secret put`)
 
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `NOTION_API_KEY`, `NOTION_ARTICLES_DB_ID`, `NOTION_BOOKS_DB_ID`
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `NOTION_API_KEY`, `NOTION_ARTICLES_DB_ID`, `NOTION_BOOKS_DB_ID`, `ALLOWED_CHAT_IDS`
 
 ## Wrangler Setup
 

@@ -12,8 +12,10 @@ const app = new Hono<{ Bindings: Env }>()
 app.get('/', (c) => c.text('OK'))
 
 app.post('/webhook', async (c) => {
-  // Verify webhook secret if configured
   const secret = c.env.TELEGRAM_WEBHOOK_SECRET
+  if (!secret) {
+    console.warn('TELEGRAM_WEBHOOK_SECRET is not set — webhook is unprotected')
+  }
   if (secret) {
     const token = c.req.header('X-Telegram-Bot-Api-Secret-Token')
     if (token !== secret) {
@@ -28,6 +30,12 @@ app.post('/webhook', async (c) => {
   if (!update) return c.text('OK')
 
   const { chatId, text } = update
+
+  // Check chat ID allowlist
+  const allowed = c.env.ALLOWED_CHAT_IDS?.split(',').map(Number) ?? []
+  if (allowed.length > 0 && !allowed.includes(chatId)) {
+    return c.text('OK') // silently ignore unauthorized users
+  }
 
   try {
     await sendTypingAction(c.env.TELEGRAM_BOT_TOKEN, chatId)
