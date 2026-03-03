@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Telegram personal assistant on Cloudflare Workers. Uses Gemini Flash for agentic tool-use with Notion as backend store. Korean language responses.
+**musm** (뮤즈엠) — Telegram personal assistant on Cloudflare Workers. Uses Gemini Flash for agentic tool-use with Notion as backend store. Korean language responses.
 
 ## Commands
 
