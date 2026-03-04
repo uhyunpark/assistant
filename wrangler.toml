@@ -1,7 +1,7 @@
-name = "telegram-agent"
+name = "musm"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "PLACEHOLDER"
+id = "3909e474e9f44cdfaeaaa935fd9f4663"

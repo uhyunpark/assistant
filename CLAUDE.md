@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Telegram personal assistant on Cloudflare Workers. Uses Gemini Flash for agentic tool-use with Notion as backend store. Korean language responses.
+**musm** — Telegram personal assistant on Cloudflare Workers. Uses Gemini Flash (`gemini-3-flash-preview`) for agentic tool-use with Notion as backend store. Korean language responses.
 
 ## Commands
 
@@ -22,7 +22,7 @@ No test framework is set up yet. Use `bun run typecheck` as the primary verifica
 
 **Agentic loop** (`src/agent.ts`): Creates a Gemini chat session with conversation history from KV, sends the user message, then loops while the model returns `functionCalls` (max 10 turns). Tool calls execute in parallel via `Promise.allSettled()`. Typing indicator refreshes each iteration.
 
-**Skill system** (`src/skills/`): Replaces the old monolithic `tools.ts`. Each skill groups related tools with metadata:
+**Skill system** (`src/skills/`): Each skill groups related tools with metadata:
 
 - `types.ts` — `Tool` and `Skill` interfaces
 - `registry.ts` — `SkillRegistry` class (register, resolve, dispatch)
@@ -50,6 +50,7 @@ export const mySkill: Skill = {
 
 ## Key Conventions
 
+- **Always use `bun`** — never npm/yarn/pnpm. `bun install`, `bun run`, `bunx`.
 - All external API calls use raw `fetch` (no SDKs for Notion, Telegram, Google Books)
 - Gemini SDK: `@google/genai` — `chat.getHistory()` is synchronous (not async)
 - Telegram messages >4096 chars are auto-split; sent with Markdown parse mode (plain text fallback on error)
@@ -64,4 +65,6 @@ export const mySkill: Skill = {
 
 ## Wrangler Setup
 
-KV namespace ID in `wrangler.toml` must be replaced with actual value from `bunx wrangler kv namespace create KV`. Webhook URL: `https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WORKER_URL>/webhook&secret_token=<SECRET>`
+Webhook URL: `https://api.telegram.org/bot<TOKEN>/setWebhook?url=<WORKER_URL>/webhook&secret_token=<SECRET>`
+
+To create a new KV namespace: `bunx wrangler kv namespace create KV` and update the ID in `wrangler.toml`.

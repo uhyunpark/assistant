@@ -32,7 +32,7 @@ export async function runAgent(
   const toolDeclarations = registry.getToolDeclarations(skills)
 
   const chat = ai.chats.create({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3-flash-preview',
     config: {
       systemInstruction: soul,
       tools: [{ functionDeclarations: toolDeclarations }],
